@@ -1,0 +1,6 @@
+spacy
+transformers
+torch
+sentence_transformers
+flask
+gunicorn
