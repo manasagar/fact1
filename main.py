@@ -7,8 +7,41 @@ from typing import List, Dict, Tuple, Any, Optional
 import logging
 from flask import Flask,request,jsonify
 # Configure logging
+document = """
+The United Nations was founded on October 24, 1945, after World War II. Its headquarters are located in New York City. The current Secretary-General of the UN is António Guterres, who took office in 2017. The UN has 193 member states as of 2022, with the latest member being South Sudan, which joined in 2011. The UN Security Council has 15 members, including 5 permanent members with veto power: China, France, Russia, the United Kingdom, and the United States. The UN General Assembly meets in regular sessions beginning on the third Tuesday in September.
+
+In April 2025, the Trump administration proposed eliminating U.S. funding for United Nations peacekeeping missions, citing failures in operations in Mali (MINUSMA), Lebanon (UNIFIL), and the Democratic Republic of Congo (MONUSCO). The U.S., currently the largest contributor to the U.N., is responsible for 27% of the $5.6 billion peacekeeping budget and 22% of the $3.7 billion regular U.N. budget. This funding cut is part of the Office of Management and Budget's Passback plan, which seeks to halve the State Department’s budget for the next fiscal year beginning October 1. The proposal targets the elimination of Contributions for International Peacekeeping Activities (CIPA).
+
+The United Nations has issued a warning about the escalating risk of renewed civil war in South Sudan. Nicholas Haysom, the U.N. special envoy and head of the peacekeeping mission, alerted the U.N. Security Council about intensifying conflict between President Salva Kiir and First Vice President Riek Machar. These tensions have led to recent violence, Machar’s arrest, and widespread misinformation, increasing ethnic and political divisions. Haysom stressed that conditions mirror those of the devastating 2013 and 2016 civil wars that claimed over 400,000 lives. Although a 2018 peace agreement aimed to stabilize the nation, progress has been sluggish, and the next presidential elections have been delayed until 2026.
+
+In a briefing to the U.N. Security Council, the new U.N. envoy to Libya, Hannah Tetteh, highlighted the country's deteriorating security and political situation. Libya remains divided between rival administrations, with political struggles fueled by competition for economic resources and fragmented institutions lacking a unified budget. Despite the prevailing 2020 ceasefire, recent armed mobilizations in and around Tripoli raise fears of renewed violence. In the south, efforts to restructure the Libyan National Army have led to clashes and fatalities. A major unresolved issue is the disagreement over presidential elections, for which a U.N.-supported advisory committee is expected to submit recommendations by the end of April.
+
+At the fourth session of the Permanent Forum on People of African Descent at the United Nations in New York, Hilary Brown of the CARICOM Reparations Commission emphasized the urgency of moving from dialogue to concrete action in the global campaign for slavery reparations. She highlighted a defining moment facilitated by strengthened cooperation between the Caribbean Community (CARICOM) and the African Union (AU), both advocating for accountability from former colonial powers. CARICOM’s reparations plan calls for measures including technological support and investments to address health and education disparities.
+
+China plans to convene an informal United Nations Security Council meeting on April 23 to condemn the United States for what it describes as unilateral bullying and the weaponization of tariffs, actions that it claims undermine global peace and economic development. The meeting, to which all 193 U.N. member states are invited, will focus on the negative global impact of such unilateral practices, particularly those by the U.S., in the context of an escalating trade war initiated by President Donald Trump's imposition of heavy tariffs on Chinese imports.
+
+The Security Council adopted Resolution 2758 (2024), renewing for 12 months a travel ban and assets freeze imposed on certain designated individuals and entities in Yemen and extending for 13 months the mandate of the Panel of Experts tasked with assisting the Council’s Yemen Sanctions Committee.
+
+The Security Council adopted Resolution 2768 (2025), sustaining monthly reporting on Houthi attacks in the Red Sea. Members urged the group to halt attacks and debated the need to address the root causes of the conflict.
+
+The Security Council proposed a three-phase ceasefire deal to end the war in Gaza, adopting Resolution 2735 (2024) at its 9650th meeting. The resolution outlines a plan for an immediate ceasefire, the release of hostages, and the start of a major multi-year reconstruction plan for Gaza.
+
+The Security Council extended the mandate of the Expert Panel monitoring the sanctions regime in Sudan by adopting Resolution 2725 (2024). The panel is tasked with assisting the Council’s Sudan sanctions committee and providing regular updates on its activities.
+
+The Security Council adopted Resolution 2773 (2025), reaffirming its commitment to the sovereignty and territorial integrity of the Democratic Republic of the Congo (DRC) in light of the support by Rwanda for the military campaign by the rebel March 23 Movement (M23). The resolution called on M23 to stop all offensives and urged both Rwanda and the DRC to resume peace negotiations.
+
+The Security Council adopted Resolution 2749 (2024), extending the mandate of the United Nations Interim Force in Lebanon (UNIFIL) until August 31, 2025.
+
+The Security Council adopted Resolution 2728 (2024), calling for an immediate ceasefire in the Gaza war during the month of Ramadan, leading to a lasting sustainable ceasefire. The resolution also demands the unconditional release of all hostages.
+
+The Security Council adopted Resolution 2763 (2024), extending measures imposed by Resolution 2255 (2015) and the mandate of the Analytical Support and Sanctions Monitoring Team for a period of 14 months.
+
+The Security Council adopted Resolution 2761 (2024), addressing humanitarian exemptions to asset freeze measures imposed by the ISIL (Da'esh) and Al-Qaida sanctions regime.
+
+
+    """
 pipe=None
-document=""
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 app=Flask(__name__)
@@ -18,7 +51,8 @@ def echo():
     res=res['text']
     global pipe
     results=pipe.process_document(document,res)
-    print(pipe.format_results(results))
+    print(jsonify(pipe.format_results(results)))
+    print(results)
     return jsonify(pipe.format_results(results)),200
 
 class ClaimExtractionVerificationPipeline:
@@ -360,83 +394,76 @@ class ClaimExtractionVerificationPipeline:
                 "undetermined_count": len(nei_claims)
             }
         }
-
-    def format_results(self, results: Dict) -> str:
-        """Format verification results as a readable text document."""
-        lines = ["# Claim Verification Results\n"]
-
-        # Summary statistics
-        summary = results["summary"]
-        lines.append(f"## Summary\n")
-        lines.append(f"- Total claims analyzed: {summary['total_claims']}")
-        lines.append(f"- Supported claims: {summary['supported_count']}")
-        lines.append(f"- Refuted claims: {summary['refuted_count']}")
-        lines.append(f"- Undetermined claims: {summary['undetermined_count']}\n")
-
-        # Supported claims
-        lines.append(f"## Supported Claims\n")
-        if results["supported_claims"]:
-            for i, claim in enumerate(results["supported_claims"]):
-                lines.append(f"### Claim {i+1}: ✅ SUPPORTED")
-                lines.append(f"**Claim text**: \"{claim['text']}\"")
-                lines.append(f"**Confidence**: {claim['verification']['confidence']:.2f}")
-                lines.append(f"**Supporting evidence**: \"{claim['verification']['evidence']}\"\n")
-        else:
-            lines.append("No supported claims found.\n")
-
-        # Refuted claims
-        lines.append(f"## Refuted Claims\n")
-        if results["refuted_claims"]:
-            for i, claim in enumerate(results["refuted_claims"]):
-                lines.append(f"### Claim {i+1}: ❌ REFUTED")
-                lines.append(f"**Claim text**: \"{claim['text']}\"")
-                lines.append(f"**Confidence**: {claim['verification']['confidence']:.2f}")
-                lines.append(f"**Contradicting evidence**: \"{claim['verification']['evidence']}\"\n")
-        else:
-            lines.append("No refuted claims found.\n")
-
-        # Undetermined claims
-        lines.append(f"## Undetermined Claims\n")
-        if results["undetermined_claims"]:
-            for i, claim in enumerate(results["undetermined_claims"]):
-                lines.append(f"### Claim {i+1}: ❓ NOT ENOUGH INFO")
-                lines.append(f"**Claim text**: \"{claim['text']}\"")
-                if claim['verification']['evidence']:
-                    lines.append(f"**Closest evidence found**: \"{claim['verification']['evidence']}\"\n")
-                else:
-                    lines.append("**No relevant evidence found**\n")
-        else:
-            lines.append("No undetermined claims found.\n")
-
-        return "\n".join(lines)
-
-# Example usage
-if __name__ == "__main__":
-    # Initialize pipeline
-    pipe = ClaimExtractionVerificationPipeline()
-    document = """
-    The United Nations was founded on October 24, 1945 after World War II. Its headquarters are located in New York City.
-    The current Secretary-General of the UN is António Guterres, who took office in 2017.
-    The UN has 193 member states as of 2022, with the latest member being South Sudan which joined in 2011.
-    The UN Security Council has 15 members, including 5 permanent members with veto power: China, France, Russia, the United Kingdom, and the United States.
-    The UN General Assembly meets in regular sessions beginning on the third Tuesday in September.
-    """
-    app.run(host="0.0.0.0", port=5050, debug=True)
-    # Example document
+    def format_results(self, results: Dict) -> Dict:
+        """Format verification results as a simplified JSON structure with claims in serial order."""
+        print(results)
+    
+        formatted_claims = []
+        claim_counter = 1
+    
+    # Process all claims in a single list, maintaining a consistent counter
+    
+    # Add supported claims
+        for claim in results["supported_claims"]:
+            formatted_claims.append({
+            "id": claim_counter,
+            "text": claim['text'],
+            "status": "SUPPORTED",
+            "confidence": round(claim['verification']['confidence'], 2),
+            "evidence": claim['verification']['evidence']
+        })
+            claim_counter += 1
+    
+    # Add refuted claims
+        for claim in results["refuted_claims"]:
+            formatted_claims.append({
+            "id": claim_counter,
+            "text": claim['text'],
+            "status": "REFUTED",
+            "confidence": round(claim['verification']['confidence'], 2),
+            "evidence": claim['verification']['evidence']
+        })
+            claim_counter += 1
+    
+    # Add undetermined claims
+        for claim in results["undetermined_claims"]:
+            claim_data = {
+            "id": claim_counter,
+            "text": claim['text'],
+            "status": "NOT_ENOUGH_INFO",
+            "confidence": round(claim['verification'].get('confidence', 0), 2),
+            "evidence": claim['verification'].get('evidence', '')
+        }
+            formatted_claims.append(claim_data)
+            claim_counter += 1
+    
+        return {
+        "claims": formatted_claims,
+        "total_claims": len(formatted_claims)
+    }
+    
+pipe = ClaimExtractionVerificationPipeline()
+# # Example usage
+# if __name__ == "__main__":
+#     # Initialize pipeline
+    
+    
+#     app.run(host="0.0.0.0", port=5050, debug=True)
+#     # Example document
     
 
-    # Example claims to verify (these would normally be extracted from the document)
-    claims =  "The United Nations was founded in 1945.The UN headquarters are in Washington DC.António Guterres is the Secretary-General of the UN.The UN has 200 member states.The Security Council has 5 permanent members."
+#     # Example claims to verify (these would normally be extracted from the document)
+#     claims =  "The United Nations was founded in 1945.The UN headquarters are in Washington DC.António Guterres is the Secretary-General of the UN.The UN has 200 member states.The Security Council has 5 permanent members."
     
 
-    # Process the document with provided claims
-    results = pipeline.process_document(document, claims)
+#     # Process the document with provided claims
+#     results = pipeline.process_document(document, claims)
 
-    # Format results
-    formatted_results = pipeline.format_results(results)
-    print(formatted_results)
+#     # Format results
+#     formatted_results = pipeline.format_results(results)
+#     print(formatted_results)
 
-    # Example of extracting claims directly from the document
-    # results = pipeline.process_document(document)
-    # formatted_results = pipeline.format_results(results)
-    # print(formatted_results)
+#     # Example of extracting claims directly from the document
+#     # results = pipeline.process_document(document)
+#     # formatted_results = pipeline.format_results(results)
+#     # print(formatted_results)
